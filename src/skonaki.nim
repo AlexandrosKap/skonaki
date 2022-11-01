@@ -53,11 +53,11 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   # Create module documentation.
   var types = newSeq[string]()
   var procs = newSeq[string]()
-  doc.writeLine(&"# {projectName.capitalizeAscii} Cheatsheet\n")
+  doc.writeLine(&"# {projectName.capitalizeAscii} Cheatsheet")
   for module in src.walkDirRec:
     if module.ext != "nim":
       continue
-    doc.writeLine(&"## {module.name}\n")
+    doc.writeLine(&"\n## {module.name}\n")
     for line in module.lines:
       if line.contains(re"\w+\*"):
         let pick = line.strip
