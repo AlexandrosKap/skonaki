@@ -1,5 +1,8 @@
 import os, re, strutils, strformat
 
+func findLast(str: string, c: char): int =
+  str.rfind(c)
+
 func ext(path: string): string =
   let extPos = path.searchExtPos
   if extPos > 0:
@@ -24,7 +27,8 @@ proc writeBlock(doc: File, title: string, lines: seq[string]) =
   if lines.len != 0:
     doc.writeLine(&"{title}\n\n```nim")
     for line in lines:
-      doc.writeLine(if line.endsWith('='): line[0 .. ^2] else: line)
+      let pos = line.findLast('=')
+      doc.writeLine(if pos != -1: line[0 ..< pos] else: line)
     doc.writeLine("```")
 
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
