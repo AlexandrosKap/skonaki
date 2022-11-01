@@ -14,6 +14,7 @@ func isProc(str: string): bool =
   str.startsWith("proc") or
   str.startsWith("func") or
   str.startsWith("method") or
+  str.startsWith("iterator") or
   str.startsWith("template") or
   str.startsWith("macro")
 
