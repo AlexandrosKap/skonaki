@@ -68,6 +68,8 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     doc.writeBlock("Types", types)
     if types.len != 0: doc.writeLine("")
     doc.writeBlock("Procedures", procs)
+    types.setLen(0)
+    procs.setLen(0)
 
 when isMainModule:
   let args = commandLineParams()
