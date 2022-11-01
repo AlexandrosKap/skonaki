@@ -1,5 +1,7 @@
 # Skonaki Cheatsheet
 
+* [skonaki](##skonaki)
+
 ## skonaki
 
 Procedures

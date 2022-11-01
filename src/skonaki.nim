@@ -1,5 +1,9 @@
 import os, re, strutils, strformat
 
+type
+  LineKind = enum
+    lkType, lkProcedure, lkIterator, lkTemplate, lkMacro, lkNone
+
 func ext(path: string): string =
   let extPos = path.searchExtPos
   if extPos > 0:
@@ -10,25 +14,47 @@ func ext(path: string): string =
 func name(path: string): string =
   path.extractFilename.changeFileExt("")
 
-func isProc(str: string): bool =
-  str.startsWith("proc") or
-  str.startsWith("func") or
-  str.startsWith("method") or
-  str.startsWith("iterator") or
-  str.startsWith("template") or
-  str.startsWith("macro")
+func name(lk: LineKind): string =
+  case lk:
+  of lkType: "Types"
+  of lkProcedure: "Procedures"
+  of lkIterator: "Iterators"
+  of lkTemplate: "Templates"
+  of lkMacro: "Macros"
+  of lkNone: "Nones"
 
 func isType(str: string): bool =
   (str.startsWith("type") and str[5].isUpperAscii) or
   str.startsWith(re"[A-Z]")
 
-proc writeBlock(doc: File, title: string, lines: seq[string]) =
-  if lines.len != 0:
-    doc.writeLine(&"{title}\n\n```nim")
-    for line in lines:
-      let pos = line.rfind('=')
-      doc.writeLine(if pos != -1: line[0 ..< pos] else: line)
-    doc.writeLine("```")
+func isProcedure(str: string): bool =
+  str.startsWith("proc") or
+  str.startsWith("func") or
+  str.startsWith("method")
+
+func isIterator(str: string): bool =
+  str.startsWith("iterator")
+
+func isTemplate(str: string): bool =
+  str.startsWith("template")
+
+func isMacro(str: string): bool =
+  str.startsWith("macro")
+
+func lineKind(str: string): LineKind =
+  if str.isType: lkType
+  elif str.isProcedure: lkProcedure
+  elif str.isIterator: lkIterator
+  elif str.isTemplate: lkTemplate
+  elif str.isMacro: lkMacro
+  else: lkNone
+
+proc writeGroup(doc: File, title: string, lines: seq[string]) =
+  doc.writeLine(&"{title}\n\n```nim")
+  for line in lines:
+    let pos = line.rfind('=')
+    doc.writeLine(if pos != -1: line[0 ..< pos] else: line)
+  doc.writeLine("```")
 
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   ## Creates a cheatsheet for a nim project.
@@ -49,27 +75,35 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     return 2
   let doc = open(joinPath(outputDir, name) & ".md", fmWrite)
   defer: doc.close()
+  doc.writeLine(&"# {projectName.capitalizeAscii} Cheatsheet\n")
+
+  # Get modules.
+  var modules = newSeq[string]()
+  for module in src.walkDirRec:
+    modules.add(module)
+    doc.writeLine(&"* [{module.name}](##{module.name})")
 
   # Create module documentation.
-  var types = newSeq[string]()
-  var procs = newSeq[string]()
-  doc.writeLine(&"# {projectName.capitalizeAscii} Cheatsheet")
-  for module in src.walkDirRec:
+  var groups = [
+    newSeq[string](), newSeq[string](),
+    newSeq[string](), newSeq[string](),
+    newSeq[string](),
+  ]
+  for module in modules:
     if module.ext != "nim":
       continue
-    doc.writeLine(&"\n## {module.name}\n")
+    doc.writeLine(&"\n## {module.name}")
     for line in module.lines:
       if line.contains(re"\w+\*"):
-        let pick = line.strip
-        if pick.isProc:
-          procs.add(pick)
-        elif pick.isType:
-          types.add(pick.replace("type", "").strip)
-    doc.writeBlock("Types", types)
-    if types.len != 0: doc.writeLine("")
-    doc.writeBlock("Procedures", procs)
-    types.setLen(0)
-    procs.setLen(0)
+        let pick = line.replace("type", "").strip
+        case pick.lineKind
+        of lkNone: discard
+        else: groups[pick.lineKind.ord].add(pick)
+    for i in 0 ..< groups.len:
+      if groups[i].len != 0:
+        doc.writeLine("")
+        doc.writeGroup(i.LineKind.name, groups[i])
+        groups[i].setLen(0)
 
 when isMainModule:
   let args = commandLineParams()
