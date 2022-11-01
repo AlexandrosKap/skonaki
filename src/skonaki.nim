@@ -42,7 +42,11 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
       break
   if projectName.len == 0:
     return 2
-  let src = joinPath(projectDir, "src")
+  var src = joinPath(projectDir, "src")
+  if not src.dirExists:
+    src = joinPath(projectDir, projectName)
+  if not src.dirExists:
+    return 2
   let doc = open(joinPath(outputDir, name) & ".md", fmWrite)
   defer: doc.close()
 
