@@ -14,8 +14,7 @@ func `$`(lk: LineKind): string =
   of lkNone: "Nones"
 
 func isType(str: string): bool =
-  (str.startsWith("type") and str[5].isUpperAscii) or
-  str.startsWith(re"[A-Z]")
+  str.startsWith("type") or str.strip().startsWith(re"[A-Z]")
 
 func isProcedure(str: string): bool =
   str.startsWith("proc") or
@@ -30,6 +29,12 @@ func isTemplate(str: string): bool =
 
 func isMacro(str: string): bool =
   str.startsWith("macro")
+
+func isBadBoyKind(str: string): bool =
+  str.startsWith(" ") and not str.isType
+
+func isMultiline(str: string): bool =
+  str.endsWith("(") or str.endsWith(",")
 
 func lineKind(str: string): LineKind =
   if str.isType: lkType
@@ -53,13 +58,14 @@ proc writeGroup(doc: File, title: string, lines: seq[string]) =
   doc.writeLine(&"{title}\n\n```nim")
   for line in lines:
     let pos = line.rfind('=')
-    doc.writeLine(if pos != -1: line[0 ..< pos] else: line)
+    let line = if pos != -1: line[0 ..< pos] else: line
+    doc.writeLine(line.replace("type", "").strip)
   doc.writeLine("```")
 
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   ## Creates a cheatsheet for a nim project.
-
   result = 0
+  
   # Check if the current directory is a Nim project.
   var projectName = ""
   for file in projectDir.walkDir:
@@ -84,6 +90,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     doc.writeLine(&"* [{module.name}](#{module.name})")
 
   # Create module documentation.
+  var buffer = ""
   var groups = [
     newSeq[string](), newSeq[string](),
     newSeq[string](), newSeq[string](),
@@ -93,12 +100,25 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     if module.ext != "nim":
       continue
     for line in module.lines:
-      if line.contains(re"[a-zA-Z1-9`]\*"):
-        let pick = line.replace("type", "").strip
-        case pick.lineKind
-        of lkNone: discard
-        else: groups[pick.lineKind.ord].add(pick)
-    
+      # For multiline procedures.
+      if buffer.len != 0:
+        if buffer.endsWith(","):
+          buffer.add(" ")
+        buffer.add(line.strip)
+        if not line.isMultiline:
+          case buffer.lineKind
+          of lkNone: discard
+          else: groups[buffer.lineKind.ord].add(buffer)
+          buffer.setLen(0)
+      # Add lines to groups.
+      if line.contains(re"[a-zA-Z1-9`]\*") and not line.isBadBoyKind:
+        if line.isMultiline:
+          buffer.add(line.strip)
+        else:
+          case line.lineKind
+          of lkNone: discard
+          else: groups[line.lineKind.ord].add(line)
+    # Write groups in the cheatsheet.
     doc.writeLine(&"\n## {module.name}")
     for i in 0 ..< groups.len:
       if groups[i].len != 0:

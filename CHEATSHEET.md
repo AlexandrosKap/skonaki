@@ -7,5 +7,5 @@
 Procedures
 
 ```nim
-proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int 
+proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int
 ```
