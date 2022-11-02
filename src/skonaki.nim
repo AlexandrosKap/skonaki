@@ -13,25 +13,34 @@ func `$`(lk: LineKind): string =
   of lkMacro: "Macros"
   of lkNone: "Nones"
 
+func myStartsWith(str: string, prefix: string): bool =
+  result = false
+  for i in 0 ..< str.len:
+    if str[i] != ' ':
+      return str[i .. ^1].startsWith(prefix)
+
+func myStartsWith(str: string, prefix: Regex): bool =
+  result = false
+  for i in 0 ..< str.len:
+    if str[i] != ' ':
+      return str[i .. ^1].startsWith(prefix)
+
 func isType(str: string): bool =
-  str.startsWith("type") or str.strip().startsWith(re"[A-Z]")
+  str.myStartsWith("type") or str.myStartsWith(re"[A-Z]")
 
 func isProcedure(str: string): bool =
-  str.startsWith("proc") or
-  str.startsWith("func") or
-  str.startsWith("method")
+  str.myStartsWith("proc") or
+  str.myStartsWith("func") or
+  str.myStartsWith("method")
 
 func isIterator(str: string): bool =
-  str.startsWith("iterator")
+  str.myStartsWith("iterator")
 
 func isTemplate(str: string): bool =
-  str.startsWith("template")
+  str.myStartsWith("template")
 
 func isMacro(str: string): bool =
-  str.startsWith("macro")
-
-func isBadBoyKind(str: string): bool =
-  str.startsWith(" ") and not str.isType
+  str.myStartsWith("macro")
 
 func isMultiline(str: string): bool =
   str.endsWith("(") or str.endsWith(",")
@@ -111,7 +120,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
           else: groups[buffer.lineKind.ord].add(buffer)
           buffer.setLen(0)
       # Add lines to groups.
-      if line.contains(re"[a-zA-Z1-9`]\*") and not line.isBadBoyKind:
+      if line.contains(re"[a-zA-Z1-9`]\*"):
         if line.isMultiline:
           buffer.add(line.strip)
         else:
