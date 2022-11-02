@@ -1,6 +1,6 @@
 # Skonaki Cheatsheet
 
-* [skonaki](##skonaki)
+* [skonaki](#skonaki)
 
 ## skonaki
 

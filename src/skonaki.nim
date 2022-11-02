@@ -4,17 +4,7 @@ type
   LineKind = enum
     lkType, lkProcedure, lkIterator, lkTemplate, lkMacro, lkNone
 
-func ext(path: string): string =
-  let extPos = path.searchExtPos
-  if extPos > 0:
-    path[extPos + 1 .. ^1]
-  else:
-    ""
-
-func name(path: string): string =
-  path.extractFilename.changeFileExt("")
-
-func name(lk: LineKind): string =
+func `$`(lk: LineKind): string =
   case lk:
   of lkType: "Types"
   of lkProcedure: "Procedures"
@@ -49,6 +39,16 @@ func lineKind(str: string): LineKind =
   elif str.isMacro: lkMacro
   else: lkNone
 
+func ext(path: string): string =
+  let extPos = path.searchExtPos
+  if extPos > 0:
+    path[extPos + 1 .. ^1]
+  else:
+    ""
+
+func name(path: string): string =
+  path.extractFilename.changeFileExt("")
+
 proc writeGroup(doc: File, title: string, lines: seq[string]) =
   doc.writeLine(&"{title}\n\n```nim")
   for line in lines:
@@ -81,7 +81,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   var modules = newSeq[string]()
   for module in src.walkDirRec:
     modules.add(module)
-    doc.writeLine(&"* [{module.name}](##{module.name})")
+    doc.writeLine(&"* [{module.name}](#{module.name})")
 
   # Create module documentation.
   var groups = [
@@ -92,17 +92,18 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   for module in modules:
     if module.ext != "nim":
       continue
-    doc.writeLine(&"\n## {module.name}")
     for line in module.lines:
-      if line.contains(re"\w+\*"):
+      if line.contains(re"[a-zA-Z1-9`]\*"):
         let pick = line.replace("type", "").strip
         case pick.lineKind
         of lkNone: discard
         else: groups[pick.lineKind.ord].add(pick)
+    
+    doc.writeLine(&"\n## {module.name}")
     for i in 0 ..< groups.len:
       if groups[i].len != 0:
         doc.writeLine("")
-        doc.writeGroup(i.LineKind.name, groups[i])
+        doc.writeGroup($i.LineKind, groups[i])
         groups[i].setLen(0)
 
 when isMainModule:
