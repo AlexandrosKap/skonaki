@@ -51,6 +51,9 @@ func isMultiline(str: string): bool =
 func isEndOfMultiline(str: string): bool =
   str.endsWith('=')
 
+func isSpace(str: string): bool =
+  str == "#"
+
 func lineKind(str: string): LineKind =
   if str.isType: lkType
   elif str.isProcedure: lkProcedure
@@ -108,6 +111,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
 
   # Create module documentation.
   var buffer = ""
+  var group = -1
   var groups = [
     newSeq[string](), newSeq[string](), newSeq[string](),
     newSeq[string](), newSeq[string]()
@@ -121,8 +125,12 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
         if buffer.isEndOfMultiline:
           case buffer.lineKind
           of lkNone: discard
-          else: groups[buffer.lineKind.ord].add(buffer.clean)
+          else:
+            group = buffer.lineKind.ord
+            groups[group].add(buffer.clean)
           buffer.setLen(0)
+      elif line.isSpace and group >= 0:
+        groups[group].add("")
       elif line.isPick:
         # Add line to group.
         if line.isMultiline:
@@ -130,7 +138,9 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
         else:
           case line.lineKind
           of lkNone: discard
-          else: groups[line.lineKind.ord].add(line.clean)
+          else:
+            group = line.lineKind.ord
+            groups[group].add(line.clean)
     # Write groups in the cheatsheet.
     doc.writeLine(&"\n## {module.name}")
     for i in 0 ..< groups.len:
