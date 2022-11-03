@@ -1,8 +1,8 @@
-# 🍫 Skonaki
+# 📒 Skonaki
 
 A simple cheatsheet generator for Nim.
 
-## 🐕 Example
+## Example
 
 Creates a CHEATSHEET.md file in the current project directory.
 
@@ -10,7 +10,7 @@ Creates a CHEATSHEET.md file in the current project directory.
 skonaki .
 ```
 
-## 📦 Installation
+## Installation
 
 Copy and paste the following commands into your terminal.
 
@@ -18,11 +18,11 @@ Copy and paste the following commands into your terminal.
 nimble install https://github.com/AlexandrosKap/skonaki
 ```
 
-## 📖 Documentation
+## Documentation
 
 Information on how to use the tool can be found in the CHEATSHEET.md file.
 
-## 📜 License
+## License
 
 The project is released under the terms of the MIT License.
 Please refer to the LICENSE file.
