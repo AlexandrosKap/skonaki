@@ -25,6 +25,9 @@ func myStartsWith(str: string, prefix: Regex): bool =
     if str[i] != ' ':
       return str[i .. ^1].startsWith(prefix)
 
+func isPick(str: string): bool =
+  str.contains(re"[a-zA-Z1-9`]\*")
+
 func isType(str: string): bool =
   str.myStartsWith("type") or str.myStartsWith(re"[A-Z]")
 
@@ -43,7 +46,10 @@ func isMacro(str: string): bool =
   str.myStartsWith("macro")
 
 func isMultiline(str: string): bool =
-  str.endsWith("(") or str.endsWith(",")
+  str.endsWith('(') or str.endsWith(',')
+
+func isEndOfMultiline(str: string): bool =
+  str.endsWith('=')
 
 func lineKind(str: string): LineKind =
   if str.isType: lkType
@@ -55,20 +61,21 @@ func lineKind(str: string): LineKind =
 
 func ext(path: string): string =
   let extPos = path.searchExtPos
-  if extPos > 0:
-    path[extPos + 1 .. ^1]
-  else:
-    ""
+  if extPos > 0: path[extPos + 1 .. ^1]
+  else: ""
 
 func name(path: string): string =
   path.extractFilename.changeFileExt("")
 
-proc writeGroup(doc: File, title: string, lines: seq[string]) =
+func clean(str: string): string =
+  str.replace("type", "").strip
+
+proc writeGroup(doc: File, title: string, group: seq[string]) =
   doc.writeLine(&"{title}\n\n```nim")
-  for line in lines:
+  for line in group:
     let pos = line.rfind('=')
-    let line = if pos != -1: line[0 ..< pos] else: line
-    doc.writeLine(line.replace("type", "").strip)
+    let line = if pos != -1: line[0 ..< pos - 1] else: line
+    doc.writeLine(line)
   doc.writeLine("```")
 
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
@@ -95,37 +102,36 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   # Get modules.
   var modules = newSeq[string]()
   for module in src.walkDirRec:
-    modules.add(module)
-    doc.writeLine(&"* [{module.name}](#{module.name})")
+    if module.ext == "nim":
+      modules.add(module)
+      doc.writeLine(&"* [{module.name}](#{module.name})")
 
   # Create module documentation.
   var buffer = ""
   var groups = [
-    newSeq[string](), newSeq[string](),
-    newSeq[string](), newSeq[string](),
-    newSeq[string](),
+    newSeq[string](), newSeq[string](), newSeq[string](),
+    newSeq[string](), newSeq[string]()
   ]
   for module in modules:
-    if module.ext != "nim":
-      continue
     for line in module.lines:
-      # For multiline procedures.
       if buffer.len != 0:
-        if buffer.endsWith(","):
-          buffer.add(" ")
+        # Adds multiline line to group.
+        buffer.add(" ")
         buffer.add(line.strip)
-        if not line.isMultiline:
+        if buffer.isEndOfMultiline:
           case buffer.lineKind
           of lkNone: discard
+          of lkType: groups[buffer.lineKind.ord].add(buffer.clean)
           else: groups[buffer.lineKind.ord].add(buffer)
           buffer.setLen(0)
-      # Add lines to groups.
-      if line.contains(re"[a-zA-Z1-9`]\*"):
+      elif line.isPick:
+        # Add line to group.
         if line.isMultiline:
           buffer.add(line.strip)
         else:
           case line.lineKind
           of lkNone: discard
+          of lkType: groups[line.lineKind.ord].add(line.clean)
           else: groups[line.lineKind.ord].add(line)
     # Write groups in the cheatsheet.
     doc.writeLine(&"\n## {module.name}")
