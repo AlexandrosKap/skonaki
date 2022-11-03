@@ -81,7 +81,7 @@ proc writeGroup(doc: File, title: string, group: seq[string]) =
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   ## Creates a cheatsheet for a nim project.
   result = 0
-  
+
   # Check if the current directory is a Nim project.
   var projectName = ""
   for file in projectDir.walkDir:
@@ -121,8 +121,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
         if buffer.isEndOfMultiline:
           case buffer.lineKind
           of lkNone: discard
-          of lkType: groups[buffer.lineKind.ord].add(buffer.clean)
-          else: groups[buffer.lineKind.ord].add(buffer)
+          else: groups[buffer.lineKind.ord].add(buffer.clean)
           buffer.setLen(0)
       elif line.isPick:
         # Add line to group.
@@ -131,8 +130,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
         else:
           case line.lineKind
           of lkNone: discard
-          of lkType: groups[line.lineKind.ord].add(line.clean)
-          else: groups[line.lineKind.ord].add(line)
+          else: groups[line.lineKind.ord].add(line.clean)
     # Write groups in the cheatsheet.
     doc.writeLine(&"\n## {module.name}")
     for i in 0 ..< groups.len:
