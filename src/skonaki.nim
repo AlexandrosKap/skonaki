@@ -120,7 +120,6 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     for line in module.lines:
       if buffer.len != 0:
         # Adds multiline line to group.
-        buffer.add(" ")
         buffer.add(line.strip)
         if buffer.isEndOfMultiline:
           case buffer.lineKind
@@ -129,6 +128,8 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
             group = buffer.lineKind.ord
             groups[group].add(buffer.clean)
           buffer.setLen(0)
+        else:
+          buffer.add(" ")
       elif line.isSpace and group >= 0:
         groups[group].add("")
       elif line.isPick:
