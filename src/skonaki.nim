@@ -2,65 +2,46 @@ import os, re, strutils, strformat
 
 type
   LineKind = enum
-    lkType, lkProcedure, lkIterator, lkTemplate, lkMacro, lkNone
+    lkProcedure, lkIterator, lkTemplate, lkMacro, lkNone
+
+func starts(str: string, prefix: string): bool =
+  ## My startsWith procedure.
+  result = false
+  for i in 0 ..< str.len:
+    if str[i] != ' ':
+      return str[i .. ^1].startsWith(prefix)
+
+func lineKind(str: string): LineKind =
+  if str.starts("proc") or str.starts("func") or str.starts("method"):
+    return lkProcedure
+  elif str.starts("iterator"):
+    return lkIterator
+  elif str.starts("template"):
+    return lkTemplate
+  elif str.starts("macro"):
+    return lkMacro
+  else:
+    return lkNone
 
 func `$`(lk: LineKind): string =
   case lk:
-  of lkType: "Types"
   of lkProcedure: "Procedures"
   of lkIterator: "Iterators"
   of lkTemplate: "Templates"
   of lkMacro: "Macros"
   of lkNone: "Nones"
 
-func myStartsWith(str: string, prefix: string): bool =
-  result = false
-  for i in 0 ..< str.len:
-    if str[i] != ' ':
-      return str[i .. ^1].startsWith(prefix)
-
-func myStartsWith(str: string, prefix: Regex): bool =
-  result = false
-  for i in 0 ..< str.len:
-    if str[i] != ' ':
-      return str[i .. ^1].startsWith(prefix)
-
 func isPick(str: string): bool =
   str.contains(re"[a-zA-Z1-9`]\*")
-
-func isType(str: string): bool =
-  str.myStartsWith("type") or str.myStartsWith(re"[A-Z]")
-
-func isProcedure(str: string): bool =
-  str.myStartsWith("proc") or
-  str.myStartsWith("func") or
-  str.myStartsWith("method")
-
-func isIterator(str: string): bool =
-  str.myStartsWith("iterator")
-
-func isTemplate(str: string): bool =
-  str.myStartsWith("template")
-
-func isMacro(str: string): bool =
-  str.myStartsWith("macro")
 
 func isMultiline(str: string): bool =
   str.endsWith('(') or str.endsWith(',')
 
-func isEndOfMultiline(str: string): bool =
+func isMultilineEnd(str: string): bool =
   str.endsWith('=')
 
 func isSpace(str: string): bool =
   str == "#"
-
-func lineKind(str: string): LineKind =
-  if str.isType: lkType
-  elif str.isProcedure: lkProcedure
-  elif str.isIterator: lkIterator
-  elif str.isTemplate: lkTemplate
-  elif str.isMacro: lkMacro
-  else: lkNone
 
 func ext(path: string): string =
   let extPos = path.searchExtPos
@@ -69,9 +50,6 @@ func ext(path: string): string =
 
 func name(path: string): string =
   path.extractFilename.changeFileExt("")
-
-func clean(str: string): string =
-  str.replace("type", "").strip
 
 proc writeGroup(doc: File, title: string, group: seq[string]) =
   doc.writeLine(&"{title}\n\n```nim")
@@ -84,7 +62,6 @@ proc writeGroup(doc: File, title: string, group: seq[string]) =
 proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   ## Creates a cheatsheet for a nim project.
   result = 0
-
   # Check if the current directory is a Nim project.
   var projectName = ""
   for file in projectDir.walkDir:
@@ -100,7 +77,7 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
     return 2
   let doc = open(joinPath(outputDir, name) & ".md", fmWrite)
   defer: doc.close()
-  doc.writeLine(&"# {projectName.capitalizeAscii} Cheatsheet\n")
+  doc.writeLine(&"# Cheatsheet\n")
 
   # Get modules.
   var modules = newSeq[string]()
@@ -112,36 +89,27 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   # Create module documentation.
   var buffer = ""
   var group = -1
-  var groups = [
-    newSeq[string](), newSeq[string](), newSeq[string](),
-    newSeq[string](), newSeq[string]()
-  ]
+  var groups = array[4, seq[string]].default
   for module in modules:
+    # Create groups.
     for line in module.lines:
       if buffer.len != 0:
-        # Adds multiline line to group.
         buffer.add(line.strip)
-        if buffer.isEndOfMultiline:
-          case buffer.lineKind
-          of lkNone: discard
-          else:
+        if buffer.isMultilineEnd:
+          if buffer.lineKind != lkNone:
             group = buffer.lineKind.ord
-            groups[group].add(buffer.clean)
+            groups[group].add(buffer)
           buffer.setLen(0)
         else:
           buffer.add(" ")
-      elif line.isSpace and group >= 0:
-        groups[group].add("")
       elif line.isPick:
-        # Add line to group.
         if line.isMultiline:
           buffer.add(line.strip)
-        else:
-          case line.lineKind
-          of lkNone: discard
-          else:
-            group = line.lineKind.ord
-            groups[group].add(line.clean)
+        elif line.lineKind != lkNone:
+          group = line.lineKind.ord
+          groups[group].add(line)
+      elif line.isSpace and group >= 0:
+        groups[group].add("")
     # Write groups in the cheatsheet.
     doc.writeLine(&"\n## {module.name}")
     for i in 0 ..< groups.len:

@@ -1,4 +1,4 @@
-# Skonaki Cheatsheet
+# Cheatsheet
 
 * [skonaki](#skonaki)
 
