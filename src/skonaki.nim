@@ -12,13 +12,13 @@ func starts(str: string, prefix: string): bool =
       return str[i .. ^1].startsWith(prefix)
 
 func lineKind(str: string): LineKind =
-  if str.starts("proc") or str.starts("func") or str.starts("method"):
+  if str.starts("proc ") or str.starts("func ") or str.starts("method "):
     return lkProcedure
-  elif str.starts("iterator"):
+  elif str.starts("iterator "):
     return lkIterator
-  elif str.starts("template"):
+  elif str.starts("template "):
     return lkTemplate
-  elif str.starts("macro"):
+  elif str.starts("macro "):
     return lkMacro
   else:
     return lkNone
