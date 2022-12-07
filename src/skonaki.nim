@@ -82,9 +82,10 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
   # Get modules.
   var modules = newSeq[string]()
   for module in src.walkDirRec:
+    let name = module.replace(src[2 .. ^1] & '/', "").replace(".nim", "")
     if module.ext == "nim":
       modules.add(module)
-      doc.writeLine(&"* [{module.name}](#{module.name})")
+      doc.writeLine(&"* [{name}](#{name})")
 
   # Create module documentation.
   var buffer = ""
@@ -111,7 +112,8 @@ proc skonaki*(projectDir = ".", outputDir = ".", name = "CHEATSHEET"): int =
       elif line.isSpace and group >= 0:
         groups[group].add("")
     # Write groups in the cheatsheet.
-    doc.writeLine(&"\n## {module.name}")
+    let name = module.replace(src[2 .. ^1] & '/', "").replace(".nim", "")
+    doc.writeLine(&"\n## {name}")
     for i in 0 ..< groups.len:
       if groups[i].len != 0:
         doc.writeLine("")
